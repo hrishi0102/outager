@@ -5,18 +5,15 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
-// Admin client - this should bypass RLS
+// Admin client - bypasses RLS
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false,
   },
-  db: {
-    schema: "public",
-  },
 });
 
-// For auth operations specifically
-const supabaseAuth = createClient(supabaseUrl, supabaseServiceKey);
+// Public client - respects RLS
+const supabasePublic = createClient(supabaseUrl, supabaseAnonKey);
 
-module.exports = { supabaseAdmin, supabaseAuth };
+module.exports = { supabaseAdmin, supabasePublic };
