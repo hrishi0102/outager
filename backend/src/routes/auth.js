@@ -1,19 +1,26 @@
 const express = require("express");
 const router = express.Router();
-const supabase = require("../config/supabase");
+const { supabaseAdmin } = require("../config/supabase");
 
 // Sign up
 router.post("/signup", async (req, res) => {
   try {
     const { email, password, fullName } = req.body;
 
-    const { data, error } = await supabase.auth.signUp({
+    // Validate input
+    if (!email || !password || !fullName) {
+      return res
+        .status(400)
+        .json({ error: "Email, password and full name are required" });
+    }
+
+    // Create user with Supabase Auth
+    const { data, error } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      options: {
-        data: {
-          full_name: fullName,
-        },
+      email_confirm: true,
+      user_metadata: {
+        full_name: fullName,
       },
     });
 
@@ -26,6 +33,7 @@ router.post("/signup", async (req, res) => {
       user: data.user,
     });
   } catch (error) {
+    console.error("Signup error:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -35,7 +43,11 @@ router.post("/signin", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required" });
+    }
+
+    const { data, error } = await supabaseAdmin.auth.signInWithPassword({
       email,
       password,
     });
@@ -50,21 +62,7 @@ router.post("/signin", async (req, res) => {
       user: data.user,
     });
   } catch (error) {
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// Sign out
-router.post("/signout", async (req, res) => {
-  try {
-    const { error } = await supabase.auth.signOut();
-
-    if (error) {
-      return res.status(400).json({ error: error.message });
-    }
-
-    res.json({ message: "Signed out successfully" });
-  } catch (error) {
+    console.error("Signin error:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -82,14 +80,14 @@ router.get("/me", async (req, res) => {
     const {
       data: { user },
       error,
-    } = await supabase.auth.getUser(token);
+    } = await supabaseAdmin.auth.getUser(token);
 
     if (error || !user) {
       return res.status(401).json({ error: "Invalid token" });
     }
 
     // Get user profile
-    const { data: profile } = await supabase
+    const { data: profile } = await supabaseAdmin
       .from("profiles")
       .select("*")
       .eq("id", user.id)
@@ -97,6 +95,7 @@ router.get("/me", async (req, res) => {
 
     res.json({ user: { ...user, profile } });
   } catch (error) {
+    console.error("Get user error:", error);
     res.status(500).json({ error: "Server error" });
   }
 });

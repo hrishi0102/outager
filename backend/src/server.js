@@ -10,6 +10,9 @@ app.use(express.json());
 
 // Import routes
 const authRoutes = require("./routes/auth");
+const organizationRoutes = require("./routes/organizations");
+const serviceRoutes = require("./routes/services");
+const incidentRoutes = require("./routes/incidents");
 
 // Basic route
 app.get("/", (req, res) => {
@@ -23,6 +26,15 @@ app.get("/api/health", (req, res) => {
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/organizations", organizationRoutes);
+app.use("/api/services", serviceRoutes);
+app.use("/api/incidents", incidentRoutes);
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: "Something went wrong!" });
+});
 
 const PORT = process.env.PORT || 5000;
 
