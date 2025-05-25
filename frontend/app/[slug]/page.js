@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import apiClient from "@/lib/api";
 import useAuthStore from "@/store/auth-store";
+import { useWebSocket } from "@/lib/websocket";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -68,6 +69,38 @@ export default function PublicStatusPage({ params }) {
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // WebSocket event handlers
+  const handleServiceUpdate = (updatedService) => {
+    console.log("Received service update:", updatedService);
+    setServices((prevServices) =>
+      prevServices.map((service) =>
+        service.id === updatedService.id ? updatedService : service
+      )
+    );
+  };
+
+  const handleIncidentCreated = (newIncident) => {
+    console.log("Received new incident:", newIncident);
+    setIncidents((prevIncidents) => [newIncident, ...prevIncidents]);
+  };
+
+  const handleIncidentUpdated = (updatedIncident) => {
+    console.log("Received incident update:", updatedIncident);
+    setIncidents((prevIncidents) =>
+      prevIncidents.map((incident) =>
+        incident.id === updatedIncident.id ? updatedIncident : incident
+      )
+    );
+  };
+
+  // Initialize WebSocket connection
+  useWebSocket(
+    organization?.id,
+    handleServiceUpdate,
+    handleIncidentCreated,
+    handleIncidentUpdated
+  );
 
   useEffect(() => {
     loadStatusPage();
@@ -215,6 +248,11 @@ export default function PublicStatusPage({ params }) {
                   ? "All Systems Operational"
                   : "System Issues Detected"}
               </span>
+            </div>
+            {/* Real-time indicator */}
+            <div className="flex items-center justify-center gap-2 mt-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-sm text-muted-foreground">Live Status</span>
             </div>
           </div>
         </div>
