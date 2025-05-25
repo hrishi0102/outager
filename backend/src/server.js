@@ -13,7 +13,15 @@ const { initializeWebSocket } = require("./websocket");
 initializeWebSocket(server);
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin:
+      process.env.NODE_ENV === "production"
+        ? [process.env.FRONTEND_URL, "https://your-frontend-domain.vercel.app"]
+        : "http://localhost:3000",
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 // Import routes
