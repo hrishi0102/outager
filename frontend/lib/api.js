@@ -35,8 +35,9 @@ class ApiClient {
       },
     };
 
+    // Don't add token to signup endpoint
     const token = this.getToken();
-    if (token) {
+    if (token && !endpoint.includes("/auth/signup")) {
       config.headers.Authorization = `Bearer ${token}`;
     }
 
