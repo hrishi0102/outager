@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { supabaseAdmin } = require("../config/supabase");
+const { supabaseAdmin, supabasePublic } = require("../config/supabase");
 
 // Sign up
 router.post("/signup", async (req, res) => {
@@ -14,23 +14,36 @@ router.post("/signup", async (req, res) => {
         .json({ error: "Email, password and full name are required" });
     }
 
-    // Create user with Supabase Auth
-    const { data, error } = await supabaseAdmin.auth.admin.createUser({
+    if (password.length < 6) {
+      return res
+        .status(400)
+        .json({ error: "Password must be at least 6 characters long" });
+    }
+
+    console.log("Creating user with email:", email); // Debug log
+
+    // Use public client for signup instead of admin
+    const { data, error } = await supabasePublic.auth.signUp({
       email,
       password,
-      email_confirm: true,
-      user_metadata: {
-        full_name: fullName,
+      options: {
+        data: {
+          full_name: fullName,
+        },
       },
     });
 
     if (error) {
+      console.error("Supabase signup error:", error); // Debug log
       return res.status(400).json({ error: error.message });
     }
+
+    console.log("User created successfully:", data.user?.id); // Debug log
 
     res.status(201).json({
       message: "User created successfully",
       user: data.user,
+      session: data.session,
     });
   } catch (error) {
     console.error("Signup error:", error);
