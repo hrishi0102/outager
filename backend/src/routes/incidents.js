@@ -2,6 +2,10 @@ const express = require("express");
 const router = express.Router();
 const { supabaseAdmin } = require("../config/supabase");
 const { authenticateToken } = require("../middleware/auth");
+const {
+  broadcastIncidentCreated,
+  broadcastIncidentUpdated,
+} = require("../websocket");
 
 // Get incidents for organization (public)
 router.get("/organization/:organizationId", async (req, res) => {
@@ -41,7 +45,7 @@ router.get("/organization/:organizationId", async (req, res) => {
   }
 });
 
-// Create incident
+// Create incident WITH WEBSOCKET BROADCAST
 router.post("/:organizationId", authenticateToken, async (req, res) => {
   try {
     const { organizationId } = req.params;
@@ -94,19 +98,46 @@ router.post("/:organizationId", authenticateToken, async (req, res) => {
       }
     }
 
+    // Get full incident data with related info for broadcast
+    const { data: fullIncident } = await supabaseAdmin
+      .from("incidents")
+      .select(
+        `
+        *,
+        incident_updates (
+          id,
+          message,
+          status,
+          created_at
+        ),
+        incident_services (
+          service_id,
+          services (
+            id,
+            name
+          )
+        )
+      `
+      )
+      .eq("id", incident.id)
+      .single();
+
+    // BROADCAST INCIDENT CREATED VIA WEBSOCKET
+    broadcastIncidentCreated(organizationId, fullIncident);
+
     res.status(201).json({ incident });
   } catch (error) {
     res.status(500).json({ error: "Server error" });
   }
 });
 
-// Add incident update
+// Add incident update WITH WEBSOCKET BROADCAST
 router.post(
   "/:organizationId/:incidentId/updates",
   authenticateToken,
   async (req, res) => {
     try {
-      const { incidentId } = req.params;
+      const { organizationId, incidentId } = req.params;
       const { message, status } = req.body;
       const userId = req.user.id;
 
@@ -138,6 +169,33 @@ router.post(
       if (incidentError) {
         return res.status(400).json({ error: incidentError.message });
       }
+
+      // Get full incident data for broadcast
+      const { data: fullIncident } = await supabaseAdmin
+        .from("incidents")
+        .select(
+          `
+          *,
+          incident_updates (
+            id,
+            message,
+            status,
+            created_at
+          ),
+          incident_services (
+            service_id,
+            services (
+              id,
+              name
+            )
+          )
+        `
+        )
+        .eq("id", incidentId)
+        .single();
+
+      // BROADCAST INCIDENT UPDATED VIA WEBSOCKET
+      broadcastIncidentUpdated(organizationId, fullIncident);
 
       res.json({ update });
     } catch (error) {

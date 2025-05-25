@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { supabaseAdmin } = require("../config/supabase");
 const { authenticateToken } = require("../middleware/auth");
+const { broadcastServiceUpdate } = require("../websocket");
 
 // Middleware to check organization membership
 const checkOrgMember = async (req, res, next) => {
@@ -82,7 +83,8 @@ router.post(
   }
 );
 
-router.patch(":serviceId/status", authenticateToken, async (req, res) => {
+// UPDATE SERVICE STATUS WITH WEBSOCKET BROADCAST
+router.patch("/:serviceId/status", authenticateToken, async (req, res) => {
   try {
     const { serviceId } = req.params;
     const { status } = req.body;
@@ -146,6 +148,9 @@ router.patch(":serviceId/status", authenticateToken, async (req, res) => {
     if (updateError) {
       return res.status(400).json({ error: updateError.message });
     }
+
+    // BROADCAST SERVICE UPDATE VIA WEBSOCKET
+    broadcastServiceUpdate(service.organization_id, updatedService);
 
     res.json({ service: updatedService });
   } catch (error) {

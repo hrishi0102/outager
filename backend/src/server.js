@@ -1,8 +1,16 @@
 const express = require("express");
 const cors = require("cors");
+const http = require("http");
 require("dotenv").config();
 
 const app = express();
+
+// Create HTTP server
+const server = http.createServer(app);
+
+// Initialize WebSocket
+const { initializeWebSocket } = require("./websocket");
+initializeWebSocket(server);
 
 // Middleware
 app.use(cors());
@@ -38,8 +46,10 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: "Something went wrong!" });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8080;
 
-app.listen(PORT, () => {
+// Use server.listen instead of app.listen for WebSocket support
+server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+  console.log(`WebSocket server initialized`);
 });
