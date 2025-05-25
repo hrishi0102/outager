@@ -42,6 +42,7 @@ const statusOptions = [
 export default function ServicesPage() {
   const { organization } = useAuthStore();
   const [services, setServices] = useState([]);
+  const [userRole, setUserRole] = useState("viewer");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -56,8 +57,23 @@ export default function ServicesPage() {
   useEffect(() => {
     if (organization) {
       loadServices();
+      loadUserRole();
     }
   }, [organization]);
+
+  const loadUserRole = async () => {
+    try {
+      const response = await apiClient.getTeamMembers(organization.id);
+      const currentUser = response.members.find(
+        (member) =>
+          member.profiles?.email === useAuthStore.getState().user?.email
+      );
+      setUserRole(currentUser?.role || "viewer");
+    } catch (err) {
+      console.error("Failed to load user role:", err);
+      setUserRole("viewer"); // Default to most restrictive
+    }
+  };
 
   const loadServices = async () => {
     try {
@@ -112,6 +128,10 @@ export default function ServicesPage() {
     }
   };
 
+  const canCreateServices = ["admin", "member"].includes(userRole);
+  const canUpdateStatus = ["admin", "member"].includes(userRole);
+  const canDeleteServices = userRole === "admin";
+
   const getStatusInfo = (status) => {
     return (
       statusOptions.find((option) => option.value === status) ||
@@ -148,7 +168,7 @@ export default function ServicesPage() {
 
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
           <DialogTrigger asChild>
-            <Button>
+            <Button disabled={!canCreateServices}>
               <Plus className="mr-2 h-4 w-4" />
               Add Service
             </Button>
@@ -220,7 +240,11 @@ export default function ServicesPage() {
             <p className="text-muted-foreground mt-2">
               Add your first service to start monitoring its status
             </p>
-            <Button className="mt-4" onClick={() => setShowAddDialog(true)}>
+            <Button
+              className="mt-4"
+              onClick={() => setShowAddDialog(true)}
+              disabled={!canCreateServices}
+            >
               <Plus className="mr-2 h-4 w-4" />
               Add Service
             </Button>
@@ -261,7 +285,11 @@ export default function ServicesPage() {
                       {/* Status Change Dropdown */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={!canUpdateStatus}
+                          >
                             Update Status
                           </Button>
                         </DropdownMenuTrigger>
@@ -284,22 +312,24 @@ export default function ServicesPage() {
                       </DropdownMenu>
 
                       {/* Actions Menu */}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          <DropdownMenuItem
-                            onClick={() => handleDeleteService(service.id)}
-                            className="text-red-600"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      {canDeleteServices && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteService(service.id)}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
                   </div>
                 </CardContent>

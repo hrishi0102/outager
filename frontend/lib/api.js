@@ -145,6 +145,31 @@ class ApiClient {
       body: JSON.stringify(data),
     });
   }
+
+  // Team management endpoints
+  async getTeamMembers(organizationId) {
+    return this.request(`/teams/${organizationId}/members`);
+  }
+
+  async addTeamMember(organizationId, email, role = "member") {
+    return this.request(`/teams/${organizationId}/members`, {
+      method: "POST",
+      body: JSON.stringify({ email, role }),
+    });
+  }
+
+  async updateMemberRole(organizationId, memberId, role) {
+    return this.request(`/teams/${organizationId}/members/${memberId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ role }),
+    });
+  }
+
+  async removeTeamMember(organizationId, memberId) {
+    return this.request(`/teams/${organizationId}/members/${memberId}`, {
+      method: "DELETE",
+    });
+  }
 }
 
 export default new ApiClient();

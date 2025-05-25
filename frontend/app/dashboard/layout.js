@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import useAuthStore from "@/store/auth-store";
+import apiClient from "@/lib/api";
 import {
   LayoutDashboard,
   Server,
@@ -38,6 +40,7 @@ export default function DashboardLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [authInitialized, setAuthInitialized] = useState(false);
+  const [userRole, setUserRole] = useState(null);
 
   // Handle client-side hydration
   useEffect(() => {
@@ -54,6 +57,33 @@ export default function DashboardLayout({ children }) {
       initialize();
     }
   }, [isClient, initAuth]);
+
+  // Load user role when user and organization are available
+  useEffect(() => {
+    if (user && authInitialized) {
+      loadUserRole();
+    }
+  }, [user, authInitialized]);
+
+  const loadUserRole = async () => {
+    try {
+      // First get user's organizations
+      const orgsResponse = await apiClient.getMyOrganizations();
+      if (orgsResponse.organizations && orgsResponse.organizations.length > 0) {
+        const firstOrg = orgsResponse.organizations[0];
+
+        // Then get team members for the organization
+        const response = await apiClient.getTeamMembers(firstOrg.id);
+        const currentUser = response.members.find(
+          (member) => member.profiles?.email === user?.email
+        );
+        setUserRole(currentUser?.role || "viewer");
+      }
+    } catch (err) {
+      console.error("Failed to load user role:", err);
+      setUserRole("viewer");
+    }
+  };
 
   // Redirect if not authenticated (only after auth is initialized)
   useEffect(() => {
@@ -90,6 +120,32 @@ export default function DashboardLayout({ children }) {
       </div>
     );
   }
+
+  const getRoleBadgeVariant = (role) => {
+    switch (role) {
+      case "admin":
+        return "default";
+      case "member":
+        return "secondary";
+      case "viewer":
+        return "outline";
+      default:
+        return "outline";
+    }
+  };
+
+  const getRoleLabel = (role) => {
+    switch (role) {
+      case "admin":
+        return "Admin";
+      case "member":
+        return "Member";
+      case "viewer":
+        return "Viewer";
+      default:
+        return "User";
+    }
+  };
 
   const userInitials =
     user?.user_metadata?.full_name
@@ -172,6 +228,16 @@ export default function DashboardLayout({ children }) {
             <div className="hidden lg:block"></div>
 
             <div className="flex items-center gap-4 ml-auto">
+              {/* Role Badge */}
+              {userRole && (
+                <Badge
+                  variant={getRoleBadgeVariant(userRole)}
+                  className="text-xs"
+                >
+                  {getRoleLabel(userRole)}
+                </Badge>
+              )}
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
