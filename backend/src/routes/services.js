@@ -15,8 +15,6 @@ const checkOrgMember = async (req, res, next) => {
     .eq("user_id", userId)
     .single();
 
-  console.log("Membership query result:", { data, error }); // Debug log
-
   if (error || !data) {
     return res.status(403).json({ error: "Not a member of this organization" });
   }

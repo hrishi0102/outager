@@ -2,7 +2,6 @@ const supabase = require("./config/supabase");
 
 async function deleteAllUsers() {
   const { data: users, error } = await supabase.auth.admin.listUsers();
-  console.log(users);
 
   if (error) {
     console.error("Error listing users:", error);
