@@ -46,7 +46,6 @@ router.get("/organization/:organizationId", async (req, res) => {
   }
 });
 
-// Create service
 router.post(
   "/:organizationId",
   authenticateToken,
@@ -56,11 +55,11 @@ router.post(
       const { organizationId } = req.params;
       const { name, description } = req.body;
 
-      // Only admins can create services
-      if (req.userRole !== "admin") {
+      // Admins and members can create services
+      if (!["admin", "member"].includes(req.userRole)) {
         return res
           .status(403)
-          .json({ error: "Only admins can create services" });
+          .json({ error: "Only admins and members can create services" });
       }
 
       const { data, error } = await supabaseAdmin
@@ -85,9 +84,7 @@ router.post(
   }
 );
 
-// Update service status
-// Update service status
-router.patch("/:serviceId/status", authenticateToken, async (req, res) => {
+router.patch(":serviceId/status", authenticateToken, async (req, res) => {
   try {
     const { serviceId } = req.params;
     const { status } = req.body;

@@ -13,6 +13,7 @@ const authRoutes = require("./routes/auth");
 const organizationRoutes = require("./routes/organizations");
 const serviceRoutes = require("./routes/services");
 const incidentRoutes = require("./routes/incidents");
+const teamRoutes = require("./routes/teams");
 
 // Basic route
 app.get("/", (req, res) => {
@@ -29,6 +30,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/organizations", organizationRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/incidents", incidentRoutes);
+app.use("/api/teams", teamRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
